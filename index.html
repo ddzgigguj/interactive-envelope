@@ -5,18 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>为肖制作</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --pink-deep:   #e8789a;
-    --pink-mid:    #f4a0b8;
-    --pink-light:  #fce4ec;
-    --pink-pale:   #fff0f5;
-    --petal:       #ffd6e4;
-    --gold:        #d4a46a;
-    --ink:         #5a3a4a;
+    --pink-deep:  #e8789a;
+    --pink-pale:  #fff0f5;
+    --ink:        #5a3a4a;
   }
 
   body {
@@ -30,11 +26,10 @@
     position: relative;
   }
 
-  /* ── Floating petals background ── */
+  /* petals */
   .petal {
     position: fixed;
-    width: 12px;
-    height: 18px;
+    width: 12px; height: 18px;
     background: radial-gradient(ellipse at 40% 30%, #ffcce0, #f9a8c9aa);
     border-radius: 0 60% 60% 60%;
     opacity: 0;
@@ -42,29 +37,65 @@
     pointer-events: none;
   }
   @keyframes fall {
-    0%   { transform: translateY(-60px) rotate(0deg); opacity: .7; }
-    100% { transform: translateY(110vh)  rotate(360deg); opacity: 0; }
+    0%   { transform: translateY(-60px) rotate(0deg); opacity:.7; }
+    100% { transform: translateY(110vh) rotate(360deg); opacity:0; }
   }
 
-  /* ── Scene wrapper ── */
+  /* fireworks canvas */
+  #fw-canvas {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* YES overlay */
+  #yes-overlay {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 50%, #fff0f8 0%, #ffd6e8 100%);
+    z-index: 9998;
+    opacity: 0; pointer-events: none;
+    transition: opacity .6s ease;
+  }
+  #yes-overlay.show { opacity: 1; pointer-events: all; }
+  #yes-overlay .yes-msg {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 36px;
+    color: #e8789a;
+    text-shadow: 0 2px 16px #f9a8c9;
+    animation: pop .5s cubic-bezier(.2,1.4,.4,1) both;
+    text-align: center;
+    line-height: 1.6;
+  }
+  #yes-overlay .yes-sub {
+    margin-top: 14px;
+    font-family: 'ZCOOL XiaoWei', serif;
+    font-size: 18px;
+    color: #c06080;
+    animation: pop .5s .2s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  @keyframes pop {
+    from { transform: scale(.5); opacity:0; }
+    to   { transform: scale(1);  opacity:1; }
+  }
+
+  /* scene */
   .scene {
     position: relative;
-    width: 340px;
-    height: 240px;
+    width: 340px; height: 240px;
     cursor: pointer;
     perspective: 800px;
   }
 
-  /* ── ENVELOPE ── */
+  /* envelope */
   .envelope {
-    position: absolute;
-    inset: 0;
+    position: absolute; inset: 0;
     filter: drop-shadow(0 12px 32px #e8789a55);
     transition: filter .3s;
   }
   .scene:hover .envelope { filter: drop-shadow(0 18px 42px #e8789a88); }
 
-  /* bottom body */
   .env-body {
     position: absolute;
     bottom: 0; left: 0;
@@ -73,177 +104,187 @@
     border-radius: 4px 4px 12px 12px;
     overflow: hidden;
   }
-  .env-body::before {              /* left triangle */
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0;
-    border-style: solid;
-    border-width: 200px 0 0 170px;
-    border-color: transparent transparent transparent #f07aaa;
+  .env-body::before {
+    content:'';
+    position:absolute; bottom:0; left:0;
+    border-style:solid;
+    border-width:200px 0 0 170px;
+    border-color:transparent transparent transparent #f07aaa;
   }
-  .env-body::after {               /* right triangle */
-    content: '';
-    position: absolute;
-    bottom: 0; right: 0;
-    border-style: solid;
-    border-width: 200px 170px 0 0;
-    border-color: transparent #f07aaa transparent transparent;
+  .env-body::after {
+    content:'';
+    position:absolute; bottom:0; right:0;
+    border-style:solid;
+    border-width:200px 170px 0 0;
+    border-color:transparent #f07aaa transparent transparent;
   }
 
-  /* bottom-center V fold */
   .env-bottom-fold {
-    position: absolute;
-    bottom: 0; left: 50%; transform: translateX(-50%);
-    width: 0; height: 0;
-    border-style: solid;
-    border-width: 0 170px 110px 170px;
-    border-color: transparent transparent #e06090 transparent;
+    position:absolute;
+    bottom:0; left:50%; transform:translateX(-50%);
+    width:0; height:0;
+    border-style:solid;
+    border-width:0 170px 110px 170px;
+    border-color:transparent transparent #e06090 transparent;
   }
 
-  /* flap (top) */
   .env-flap {
-    position: absolute;
-    top: 0; left: 0;
-    width: 340px; height: 140px;
-    transform-origin: top center;
-    transform-style: preserve-3d;
-    transition: transform .7s cubic-bezier(.4,0,.2,1);
-    z-index: 10;
+    position:absolute;
+    top:0; left:0;
+    width:340px; height:140px;
+    transform-origin:top center;
+    transform-style:preserve-3d;
+    transition:transform .7s cubic-bezier(.4,0,.2,1);
+    z-index:10;
   }
   .env-flap-shape {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(170deg, #f9c8d8 0%, #f095b6 100%);
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-    border-radius: 4px 4px 0 0;
-  }
-  /* flap inner (visible when open) */
-  .env-flap-shape::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(170deg, #fce4ec 0%, #f9b8ce 100%);
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-    transform: rotateX(180deg) scaleY(-1);
+    position:absolute; inset:0;
+    background:linear-gradient(170deg,#f9c8d8 0%,#f095b6 100%);
+    clip-path:polygon(0 0,100% 0,50% 100%);
+    border-radius:4px 4px 0 0;
   }
 
-  /* label on envelope */
   .env-label {
-    position: absolute;
-    bottom: 30px;
-    left: 50%; transform: translateX(-50%);
-    z-index: 5;
-    text-align: center;
-    color: #fff;
-    font-size: 22px;
-    letter-spacing: 4px;
-    text-shadow: 0 2px 8px #c05070;
-    white-space: nowrap;
-    transition: opacity .3s;
+    position:absolute;
+    bottom:30px; left:50%; transform:translateX(-50%);
+    z-index:5;
+    color:#fff; font-size:22px;
+    letter-spacing:4px;
+    text-shadow:0 2px 8px #c05070;
+    white-space:nowrap;
+    transition:opacity .3s;
   }
 
-  /* heart seal */
   .seal {
-    position: absolute;
-    top: 110px; left: 50%; transform: translateX(-50%);
-    z-index: 15;
-    font-size: 28px;
-    filter: drop-shadow(0 2px 6px #c0507088);
-    transition: transform .4s, opacity .4s;
+    position:absolute;
+    top:110px; left:50%; transform:translateX(-50%);
+    z-index:15; font-size:28px;
+    filter:drop-shadow(0 2px 6px #c0507088);
+    transition:transform .4s, opacity .4s;
   }
 
-  /* ── OPEN STATE ── */
-  .scene.open .env-flap {
-    transform: rotateX(-175deg);
-  }
-  .scene.open .env-label { opacity: 0; }
-  .scene.open .seal { transform: translateX(-50%) scale(0); opacity: 0; }
+  /* open state */
+  .scene.open .env-flap  { transform:rotateX(-175deg); }
+  .scene.open .env-label { opacity:0; }
+  .scene.open .seal      { transform:translateX(-50%) scale(0); opacity:0; }
 
-  /* ── LETTER ── */
+  /* letter */
   .letter {
-    position: absolute;
-    left: 22px;
-    bottom: 10px;
-    width: 296px;
-    min-height: 220px;
-    background: linear-gradient(170deg, #fff9f0 0%, #fff3f7 100%);
-    border-radius: 4px;
-    padding: 28px 24px 24px;
-    z-index: 2;
-    transform: translateY(0px);
-    opacity: 0;
-    transition: transform .65s cubic-bezier(.2,.8,.3,1) .35s,
-                opacity  .4s ease .35s;
-    box-shadow: 0 4px 24px #e8789a33;
-    pointer-events: none;
+    position:absolute;
+    left:22px; bottom:10px;
+    width:296px;
+    background:linear-gradient(170deg,#fff9f0 0%,#fff3f7 100%);
+    border-radius:4px;
+    padding:24px 22px 20px;
+    z-index:2;
+    transform:translateY(0px);
+    opacity:0;
+    transition:transform .65s cubic-bezier(.2,.8,.3,1) .35s,
+               opacity .4s ease .35s;
+    box-shadow:0 4px 24px #e8789a33;
+    pointer-events:none;
   }
-  .letter::before {               /* ruled lines */
-    content: '';
-    position: absolute;
-    inset: 52px 16px 16px;
-    background: repeating-linear-gradient(
-      to bottom,
-      transparent 0px,
-      transparent 27px,
-      #f4c0d022 28px
+  .letter::before {
+    content:'';
+    position:absolute;
+    inset:50px 16px 16px;
+    background:repeating-linear-gradient(
+      to bottom, transparent 0px, transparent 27px, #f4c0d022 28px
     );
   }
   .scene.open .letter {
-    transform: translateY(-195px);
-    opacity: 1;
-    pointer-events: all;
+    transform:translateY(-215px);
+    opacity:1;
+    pointer-events:all;
   }
 
   .letter-deco {
-    text-align: center;
-    font-size: 18px;
-    color: var(--pink-deep);
-    margin-bottom: 14px;
-    letter-spacing: 2px;
+    text-align:center; font-size:16px;
+    color:var(--pink-deep);
+    margin-bottom:12px; letter-spacing:2px;
   }
 
   .letter-text {
-    font-family: 'ZCOOL XiaoWei', serif;
-    font-size: 15.5px;
-    line-height: 1.95;
-    color: var(--ink);
-    text-align: justify;
-    position: relative;
-    z-index: 1;
+    font-family:'ZCOOL XiaoWei',serif;
+    font-size:14.5px; line-height:1.9;
+    color:var(--ink);
+    text-align:justify;
+    position:relative; z-index:1;
   }
 
   .letter-sign {
-    margin-top: 16px;
-    text-align: right;
-    font-family: 'Ma Shan Zheng', cursive;
-    font-size: 15px;
-    color: var(--pink-deep);
-    letter-spacing: 1px;
+    margin-top:12px; text-align:right;
+    font-family:'Ma Shan Zheng',cursive;
+    font-size:14px; color:var(--pink-deep);
+    letter-spacing:1px;
   }
 
-  /* hint text */
-  .hint {
-    position: fixed;
-    bottom: 32px;
-    left: 50%; transform: translateX(-50%);
-    font-family: 'Ma Shan Zheng', cursive;
-    font-size: 14px;
-    color: #d4899a;
-    letter-spacing: 2px;
-    animation: pulse 2s ease-in-out infinite;
-    pointer-events: none;
-    transition: opacity .4s;
+  /* buttons */
+  .btn-row {
+    margin-top:16px;
+    display:flex; gap:12px; justify-content:center;
+    position:relative; z-index:1;
   }
-  .hint.hidden { opacity: 0; }
+
+  .btn-yes {
+    padding:9px 22px;
+    background:linear-gradient(135deg,#f48fb1,#e8789a);
+    color:#fff;
+    border:none; border-radius:30px;
+    font-family:'Ma Shan Zheng',cursive;
+    font-size:15px; letter-spacing:1px;
+    cursor:pointer;
+    box-shadow:0 4px 14px #f48fb155;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .btn-yes:hover {
+    transform:scale(1.07);
+    box-shadow:0 6px 20px #f48fb188;
+  }
+  .btn-yes:active { transform:scale(.96); }
+
+  .btn-no {
+    padding:9px 22px;
+    background:#fff;
+    color:#e8789a;
+    border:2px solid #f4a0b8;
+    border-radius:30px;
+    font-family:'Ma Shan Zheng',cursive;
+    font-size:15px; letter-spacing:1px;
+    cursor:pointer;
+    position:fixed;          /* will be repositioned by JS */
+    transition:box-shadow .15s;
+    z-index:9997;
+    display:none;
+  }
+
+  /* hint */
+  .hint {
+    position:fixed; bottom:32px;
+    left:50%; transform:translateX(-50%);
+    font-family:'Ma Shan Zheng',cursive;
+    font-size:14px; color:#d4899a;
+    letter-spacing:2px;
+    animation:pulse 2s ease-in-out infinite;
+    pointer-events:none;
+    transition:opacity .4s;
+  }
+  .hint.hidden { opacity:0; }
   @keyframes pulse {
-    0%,100% { opacity: .6; transform: translateX(-50%) translateY(0); }
-    50%      { opacity: 1;  transform: translateX(-50%) translateY(-4px); }
+    0%,100%{opacity:.6;transform:translateX(-50%) translateY(0);}
+    50%    {opacity:1; transform:translateX(-50%) translateY(-4px);}
   }
 </style>
 </head>
 <body>
 
-<!-- floating petals -->
+<canvas id="fw-canvas"></canvas>
+
+<div id="yes-overlay">
+  <div class="yes-msg">太好了！！🎉🎡<br>我好开心～</div>
+  <div class="yes-sub">下个月见 🩷</div>
+</div>
+
 <script>
   (function(){
     for(let i=0;i<18;i++){
@@ -259,24 +300,14 @@
 </script>
 
 <div class="scene" id="scene" title="点击打开">
-  <!-- envelope body -->
   <div class="envelope">
     <div class="env-body"></div>
     <div class="env-bottom-fold"></div>
-
-    <!-- flap -->
-    <div class="env-flap">
-      <div class="env-flap-shape"></div>
-    </div>
-
-    <!-- label -->
+    <div class="env-flap"><div class="env-flap-shape"></div></div>
     <div class="env-label">为肖制作</div>
-
-    <!-- heart seal -->
     <div class="seal">🩷</div>
   </div>
 
-  <!-- letter (hidden until open) -->
   <div class="letter" id="letter">
     <div class="letter-deco">· · ✦ · ·</div>
     <p class="letter-text">
@@ -285,19 +316,197 @@
       但我建这个网站是想邀请你下个月抽出一天时间去游乐园游玩。当然，门票和出租车费我会自己付。
     </p>
     <div class="letter-sign">— 真诚地 🩷</div>
+    <div class="btn-row">
+      <button class="btn-yes" id="btn-yes">好啊，我同意 💕</button>
+      <button class="btn-no"  id="btn-no-placeholder" style="position:relative;display:block;">不，我不同意</button>
+    </div>
   </div>
 </div>
+
+<!-- floating "no" button (repositioned by JS) -->
+<button class="btn-no" id="btn-no">不，我不同意</button>
 
 <div class="hint" id="hint">点击信封打开 ✦</div>
 
 <script>
-  const scene = document.getElementById('scene');
-  const hint  = document.getElementById('hint');
+/* ── envelope open ── */
+const scene   = document.getElementById('scene');
+const hint    = document.getElementById('hint');
+const btnNo   = document.getElementById('btn-no');
+const btnNoP  = document.getElementById('btn-no-placeholder');
+const btnYes  = document.getElementById('btn-yes');
+const overlay = document.getElementById('yes-overlay');
 
-  scene.addEventListener('click', () => {
-    scene.classList.toggle('open');
-    hint.classList.add('hidden');
+let opened = false;
+
+scene.addEventListener('click', (e) => {
+  if(opened) return;
+  if(e.target.closest('button')) return;
+  scene.classList.add('open');
+  hint.classList.add('hidden');
+  opened = true;
+
+  // after letter appears, show the real floating no-btn
+  setTimeout(() => {
+    btnNoP.style.display = 'none';  // hide inline placeholder
+    placeNoBtn();
+    btnNo.style.display = 'block';
+  }, 1100);
+});
+
+/* ── place "no" button near the letter ── */
+function placeNoBtn() {
+  const rect = scene.getBoundingClientRect();
+  // position near the yes button area
+  btnNo.style.left = (rect.left + 180) + 'px';
+  btnNo.style.top  = (rect.top  - 80)  + 'px';
+}
+
+/* ── "no" runs away ── */
+document.addEventListener('mousemove', (e) => {
+  if(btnNo.style.display === 'none') return;
+  const r = btnNo.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top  + r.height/2;
+  const dx = e.clientX - cx;
+  const dy = e.clientY - cy;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+
+  if(dist < 110) flee();
+});
+
+/* touch support */
+document.addEventListener('touchmove', (e) => {
+  if(btnNo.style.display === 'none') return;
+  const t = e.touches[0];
+  const r = btnNo.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top  + r.height/2;
+  const dist = Math.sqrt((t.clientX-cx)**2 + (t.clientY-cy)**2);
+  if(dist < 140) flee();
+}, {passive:true});
+
+function flee() {
+  const margin = 60;
+  const maxX = window.innerWidth  - btnNo.offsetWidth  - margin;
+  const maxY = window.innerHeight - btnNo.offsetHeight - margin;
+  const nx = margin + Math.random() * maxX;
+  const ny = margin + Math.random() * maxY;
+  btnNo.style.left = nx + 'px';
+  btnNo.style.top  = ny + 'px';
+  /* little spin */
+  btnNo.style.transform = `rotate(${(Math.random()-.5)*30}deg)`;
+  setTimeout(()=>{ btnNo.style.transform='rotate(0deg)'; }, 300);
+}
+
+/* clicking "no" is basically impossible, but just in case */
+btnNo.addEventListener('click', ()=>{ flee(); });
+
+/* ── YES → fireworks ── */
+btnYes.addEventListener('click', () => {
+  launchFireworks();
+  setTimeout(()=>{ overlay.classList.add('show'); }, 800);
+  btnNo.style.display = 'none';
+});
+
+/* ── FIREWORKS ── */
+const canvas = document.getElementById('fw-canvas');
+const ctx    = canvas.getContext('2d');
+let particles = [];
+let animId;
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const COLORS = [
+  '#ff6b8a','#ff9eb5','#ffb3c6','#ff4d79',
+  '#ffd700','#ff8c00','#ff69b4','#da70d6',
+  '#ff1493','#fff0f5','#ffec6e','#a0f0a0'
+];
+
+class Particle {
+  constructor(x, y) {
+    this.x = x; this.y = y;
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 7;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.alpha = 1;
+    this.decay = .012 + Math.random() * .018;
+    this.size  = 3 + Math.random() * 4;
+    this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    this.gravity = .12;
+    this.trail = [];
+  }
+  update() {
+    this.trail.push({x: this.x, y: this.y});
+    if(this.trail.length > 6) this.trail.shift();
+    this.vy += this.gravity;
+    this.x  += this.vx;
+    this.y  += this.vy;
+    this.vx *= .97;
+    this.vy *= .97;
+    this.alpha -= this.decay;
+  }
+  draw() {
+    ctx.save();
+    /* trail */
+    for(let i=0;i<this.trail.length;i++){
+      ctx.globalAlpha = (i/this.trail.length) * this.alpha * .4;
+      ctx.beginPath();
+      ctx.arc(this.trail[i].x, this.trail[i].y, this.size*.5, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+    /* head */
+    ctx.globalAlpha = this.alpha;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fillStyle = this.color;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = this.color;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function burst(x, y, count=80) {
+  for(let i=0;i<count;i++) particles.push(new Particle(x, y));
+}
+
+function launchFireworks() {
+  cancelAnimationFrame(animId);
+  particles = [];
+  const w = canvas.width, h = canvas.height;
+
+  /* staggered bursts */
+  const shots = [
+    [w*.5,  h*.25],
+    [w*.25, h*.35],
+    [w*.75, h*.3 ],
+    [w*.5,  h*.15],
+    [w*.15, h*.5 ],
+    [w*.85, h*.45],
+    [w*.4,  h*.2 ],
+    [w*.6,  h*.18],
+  ];
+  shots.forEach(([x,y], i) => {
+    setTimeout(()=>burst(x, y, 90), i * 200);
   });
+
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles = particles.filter(p => p.alpha > 0);
+    particles.forEach(p => { p.update(); p.draw(); });
+    if(particles.length > 0) animId = requestAnimationFrame(loop);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  loop();
+}
 </script>
 
 </body>
